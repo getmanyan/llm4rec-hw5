@@ -1,0 +1,192 @@
+
+=== 1. Data ===
+users 943, movies 1682, ratings 100000
+movies with at least one rating: 1682
+dense array (page): 944 x 1683 (row/col 0 unused)
+observed share of the 943 x 1682 matrix: 6.30%; sparsity 93.70%
+ratings per user: min 20, median 65, max 737
+rating distribution 1..5: 6110 / 11370 / 27145 / 34174 / 21201 (share >= 4: 55.4%)
+missing ratings: the model trains only on the observed (user, movie, rating) triples;
+  ratingMatrix (0 = unobserved) is built by data.js but never read by script.js.
+
+=== 2. Split (per user, by timestamp, 80/10/10) ===
+train 79619 (79.6%), val 9596 (9.6%), test 10785 (10.8%)
+users skipped by the split (fewer than 5 ratings): 0
+users in val/test absent from train: 0
+distinct movies: train 1611, val 1315, test 1384
+val ratings on movies absent from train: 35 (32 movies); kept in RMSE, the model predicts mu + p_u.q_i with an untrained q_i
+test ratings on movies absent from train: 53 (46 movies); kept in RMSE, the model predicts mu + p_u.q_i with an untrained q_i
+date ranges: train 1997-09-20 .. 1998-04-22, test 1997-09-20 .. 1998-04-22
+
+=== 3. Training (page defaults) ===
+opts {"epochs":20,"lr":0.01,"reg":0.05,"batchSize":64}, factors 16, optimizer SGD (tf.train.sgd), seeds 42/43 (init) and 2026 (batch order), backend cpu
+epoch  trainRMSE  valRMSE
+    1  1.1038     1.1829
+    2  1.1005     1.1816
+    3  1.0815     1.1707
+    4  1.0315     1.1354
+    5  0.9832     1.0949
+    6  0.9333     1.0521
+    7  0.8940     1.0206
+    8  0.8655     1.0015
+    9  0.8433     0.9916
+   10  0.8226     0.9834
+   11  0.8041     0.9794
+   12  0.7872     0.9763
+   13  0.7710     0.9753
+   14  0.7563     0.9741
+   15  0.7429     0.9743
+   16  0.7309     0.9731  <- selected
+   17  0.7208     0.9748
+   18  0.7113     0.9758
+   19  0.7035     0.9779
+   20  0.6966     0.9784
+training time: 533 s (26.6 s per epoch)
+
+=== 4. RMSE (model = selected checkpoint) ===
+training mean mu = 3.5806
+validation: baseline 1.1830, MF 0.9731 (selected epoch 16, history says 0.9731)
+test:       baseline 1.2289, MF 1.0261  -> 16.5% lower
+last epoch 20: train 0.6966, val 0.9784
+check, plain-JS RMSE from the factor arrays: val 0.9731, test 1.0261
+
+=== 5. All users: what the Top-10 lists look like (SGD, page defaults) ===
+[SGD] users 943, slots 9430, recommended movie already rated in train/val: 0, slots on movies absent from train: 0
+[SGD] distinct movies across all Top-10 lists: 605 of 1611 train movies (37.6%)
+[SGD] slots: 35.8% from the 100 most-rated movies, 1.0% from movies with <= 5 train ratings, 71.8% share a top-3 liked genre of the user
+[SGD] mean train popularity of recommended slots: 151 ratings
+[SGD] most recommended movies:
+    Wrong Trousers, The (1993): 345 users (36.6%), 101 train ratings (rank 260)
+    Casablanca (1942): 313 users (33.2%), 222 train ratings (rank 62)
+    Schindler's List (1993): 273 users (29.0%), 257 train ratings (rank 38)
+    Close Shave, A (1995): 238 users (25.2%), 96 train ratings (rank 283)
+    Wallace & Gromit: The Best of Aardman Animation (1996): 233 users (24.7%), 57 train ratings (rank 435)
+    Shawshank Redemption, The (1994): 187 users (19.8%), 255 train ratings (rank 40)
+    Silence of the Lambs, The (1991): 150 users (15.9%), 346 train ratings (rank 15)
+    Titanic (1997): 149 users (15.8%), 277 train ratings (rank 27)
+
+=== 6. Top-10 for the two report users ===
+users with >= 100 ratings in train+val: 320; familiar slots per list among them: min 0, median 8, max 10
+chosen: user 10 (most familiar list) and user 102 (least familiar list)
+
+user 10: 165 ratings in train+val (mean 4.22), 151 rated >= 4, 19 in test
+  top genres among movies rated >= 4: Drama 66, Comedy 33, Romance 30
+  mean popularity of rated movies: 142 train ratings
+  5-star movies, most rated first (51): Star Wars (1977); Fargo (1996); Godfather, The (1972); Pulp Fiction (1994); Braveheart (1995); Amadeus (1984); Usual Suspects, The (1995); One Flew Over the Cuckoo's Nest (1975); 2001: A Space Odyssey (1968); Casablanca (1942)
+   1. Schindler's List (1993) | score 4.866 | Drama/War | 257 train ratings (rank 38)
+   2. Wizard of Oz, The (1939) | score 4.698 | Adventure/Children's/Drama/Musical | 215 train ratings (rank 68) | in test, rated 5
+   3. Persuasion (1995) | score 4.664 | Romance | 38 train ratings (rank 582) | in test, rated 5
+   4. Boot, Das (1981) | score 4.664 | Action/Drama/War | 183 train ratings (rank 100)
+   5. Some Folks Call It a Sling Blade (1993) | score 4.627 | Drama/Thriller | 34 train ratings (rank 621)
+   6. Wrong Trousers, The (1993) | score 4.626 | Animation/Comedy | 101 train ratings (rank 260)
+   7. To Kill a Mockingbird (1962) | score 4.602 | Drama | 187 train ratings (rank 94)
+   8. Miracle on 34th Street (1994) | score 4.598 | Drama | 71 train ratings (rank 361)
+   9. Christmas Carol, A (1938) | score 4.579 | Drama | 58 train ratings (rank 433)
+  10. Mr. Smith Goes to Washington (1939) | score 4.576 | Drama | 99 train ratings (rank 267)
+  summary: 10/10 share a top-3 liked genre, 4/10 in the 100 most-rated movies, mean popularity 124 train ratings, 2/10 rated by the user in test
+
+user 102: 193 ratings in train+val (mean 2.66), 23 rated >= 4, 23 in test
+  top genres among movies rated >= 4: Sci-Fi 11, Action 10, Adventure 6
+  mean popularity of rated movies: 143 train ratings
+  5-star movies, most rated first (0): 
+   1. Close Shave, A (1995) | score 4.327 | Animation/Comedy/Thriller | 96 train ratings (rank 283) | NEW GENRE
+   2. Beautiful Thing (1996) | score 4.210 | Drama/Romance | 27 train ratings (rank 715) | NEW GENRE
+   3. Mis�rables, Les (1995) | score 4.135 | Drama/Musical | 14 train ratings (rank 906) | NEW GENRE
+   4. Pather Panchali (1955) | score 4.108 | Drama | 7 train ratings (rank 1140) | NEW GENRE
+   5. Top Hat (1935) | score 4.059 | Comedy/Musical/Romance | 14 train ratings (rank 919) | NEW GENRE
+   6. Wrong Trousers, The (1993) | score 4.059 | Animation/Comedy | 101 train ratings (rank 260) | NEW GENRE
+   7. In the Bleak Midwinter (1995) | score 4.047 | Comedy | 15 train ratings (rank 890) | NEW GENRE
+   8. Kaspar Hauser (1993) | score 4.041 | Drama | 8 train ratings (rank 1084) | NEW GENRE
+   9. Naked in New York (1994) | score 4.040 | Comedy/Romance | 2 train ratings (rank 1452) | NEW GENRE
+  10. My Man Godfrey (1936) | score 4.035 | Comedy | 20 train ratings (rank 793) | NEW GENRE
+  summary: 0/10 share a top-3 liked genre, 0/10 in the 100 most-rated movies, mean popularity 30 train ratings, 0/10 rated by the user in test
+
+=== 7. One prediction by hand ===
+user 10, movie 615 (39 Steps, The (1935)), true test rating 4
+  p_u = [0.105, -0.248, 0.018, -0.022, 0.523, -0.006, 0.407, 0.124, 0.001, -0.397, 0.155, 0.488, 0.020, -0.421, 0.068, -0.126]
+  q_i = [0.029, 0.016, -0.039, -0.128, 0.330, 0.087, 0.057, 0.080, 0.278, -0.345, -0.206, 0.447, -0.188, -0.382, 0.208, -0.193]
+  p_u . q_i = 0.7255; mu + dot = 3.5806 + 0.7255 = 4.3061; clamp to [1, 5] -> 4.3061; predictRating() = 4.3061
+  squared error = (4.3061 - 4)^2 = 0.0937
+
+=== 8. Recall@10 (relevant = test rating >= 4.0, candidates = train movies) ===
+[SGD] Recall@10 = 0.0443 over 861 users; hits 265 of 5142 relevant test movies; users with >= 1 hit: 195
+excluded: 13 relevant test movie ids absent from train (13 ratings): [913, 1106, 1130, 1458, 1498, 1525, 1613, 1625, 1645, 1646, 1650, 1651, 1674]
+excluded: 82 of 943 test users have no relevant test movie among the candidates
+check, plain-JS Recall@10 (sort of all scores, no tf.topk): 0.0443 over 861 users
+popularity list Recall@10 (10 most-rated train movies the user has not rated): 0.0845
+random list (expected): about 0.0063 (10 of ~1587 unrated movies)
+
+=== 9. Same model trained with Adam (optimizer option of trainMF) ===
+opts {"epochs":20,"lr":0.01,"reg":0.05,"batchSize":64,"optimizer":"adam"}
+epoch  trainRMSE  valRMSE
+    1  0.8854     1.0278
+    2  0.8063     1.0091  <- selected
+    3  0.7627     1.0146
+    4  0.7423     1.0218
+    5  0.7347     1.0234
+    6  0.7284     1.0221
+    7  0.7224     1.0275
+    8  0.7155     1.0291
+    9  0.7175     1.0357
+   10  0.7147     1.0343
+   11  0.7127     1.0332
+   12  0.7116     1.0312
+   13  0.7086     1.0386
+   14  0.7094     1.0331
+   15  0.7097     1.0335
+   16  0.7080     1.0255
+   17  0.7063     1.0324
+   18  0.7047     1.0312
+   19  0.7057     1.0378
+   20  0.7050     1.0289
+[Adam] test RMSE 1.0545 (baseline 1.2289, SGD 1.0261)
+[Adam] users 943, slots 9430, recommended movie already rated in train/val: 0, slots on movies absent from train: 0
+[Adam] distinct movies across all Top-10 lists: 792 of 1611 train movies (49.2%)
+[Adam] slots: 5.8% from the 100 most-rated movies, 40.1% from movies with <= 5 train ratings, 61.0% share a top-3 liked genre of the user
+[Adam] mean train popularity of recommended slots: 38 ratings
+[Adam] most recommended movies:
+    Perfect Candidate, A (1996): 350 users (37.1%), 3 train ratings (rank 1312)
+    Santa with Muscles (1996): 247 users (26.2%), 2 train ratings (rank 1451)
+    Pather Panchali (1955): 242 users (25.7%), 7 train ratings (rank 1140)
+    Wild Bunch, The (1969): 204 users (21.6%), 39 train ratings (rank 568)
+    Aparajito (1956): 192 users (20.4%), 5 train ratings (rank 1235)
+    Everest (1998): 188 users (19.9%), 1 train ratings (rank 1577)
+    Hearts and Minds (1996): 150 users (15.9%), 3 train ratings (rank 1314)
+    Cosi (1996): 147 users (15.6%), 3 train ratings (rank 1380)
+[Adam] Recall@10 = 0.0076 over 861 users; hits 55 of 5142 relevant test movies; users with >= 1 hit: 53
+
+[Adam] user 10 Top-10:
+   1. Withnail and I (1987) | score 4.868 | 6 train ratings
+   2. Purple Noon (1960) | score 4.851 | 6 train ratings
+   3. World of Apu, The (Apur Sansar) (1959) | score 4.790 | 6 train ratings
+   4. Good Will Hunting (1997) | score 4.787 | 147 train ratings
+   5. Crossfire (1947) | score 4.757 | 4 train ratings
+   6. Pather Panchali (1955) | score 4.756 | 7 train ratings
+   7. Umbrellas of Cherbourg, The (Parapluies de Cherbourg, Les) (1964) | score 4.750 | 18 train ratings
+   8. Dumbo (1941) | score 4.740 | 92 train ratings
+   9. Affair to Remember, An (1957) | score 4.732 | 18 train ratings
+  10. Raise the Red Lantern (1991) | score 4.727 | 43 train ratings
+
+[Adam] user 102 Top-10:
+   1. New York Cop (1996) | score 5.027 | 2 train ratings
+   2. Santa with Muscles (1996) | score 4.820 | 2 train ratings
+   3. Hugo Pool (1997) | score 4.787 | 2 train ratings
+   4. Gold Diggers: The Secret of Bear Mountain (1995) | score 4.745 | 7 train ratings
+   5. Two or Three Things I Know About Her (1966) | score 4.664 | 2 train ratings
+   6. N�nette et Boni (1996) | score 4.658 | 6 train ratings
+   7. Aiqing wansui (1994) | score 4.633 | 1 train ratings
+   8. Far From Home: The Adventures of Yellow Dog (1995) | score 4.602 | 3 train ratings
+   9. Underworld (1997) | score 4.587 | 3 train ratings
+  10. Price Above Rubies, A (1998) | score 4.519 | 1 train ratings
+
+mean length of movie vectors |q_i| by number of train ratings (SGD vs Adam):
+  1-5 ratings   427 movies: SGD 0.631, Adam 1.448
+  6-50          695 movies: SGD 1.096, Adam 1.565
+  51-200        407 movies: SGD 1.227, Adam 1.208
+  >200           82 movies: SGD 1.339, Adam 1.108
+
+=== 10. Why training uses one-hot matMul instead of tf.gather ===
+one batch of 64 on backend cpu: tf.gather 592 ms, one-hot matMul 25 ms (23.5x)
+both select the same rows; the difference is the gradient kernel (UnsortedSegmentSum vs MatMul).
+
+done

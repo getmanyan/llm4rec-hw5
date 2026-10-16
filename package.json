@@ -1,0 +1,13 @@
+{
+  "name": "llm4rec-hw5",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HW5 matrix factorization (LLM4Rec, HSE). The page runs in the browser; this file is only for the offline analysis in analysis/.",
+  "scripts": {
+    "evaluate": "node analysis/evaluate.js",
+    "starter-hint": "node analysis/starter_hint.js"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "4.22.0"
+  }
+}

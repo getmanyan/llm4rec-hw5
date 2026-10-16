@@ -1,0 +1,4 @@
+reg 0.05: after 1 epoch val RMSE 1.1830, baseline val RMSE 1.1830, largest |factor| 4.88e-3
+reg 0.001: after 1 epoch val RMSE 1.1829, baseline val RMSE 1.1830, largest |factor| 3.60e-1
+In both cases the validation RMSE equals the mean-rating baseline: the penalty reaches every
+row at every batch, and Adam turns it into a step of about lr toward zero even when reg is small.
